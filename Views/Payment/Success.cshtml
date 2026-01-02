@@ -1,0 +1,119 @@
+@{
+    ViewData["Title"] = "Payment successful";
+}
+
+<style>
+    .success-container {
+        max-width: 480px;
+        margin: 3rem auto;
+        text-align: center;
+    }
+
+    .success-icon {
+        width: 80px;
+        height: 80px;
+        background: #d4edda;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 2rem;
+    }
+
+    .success-icon svg {
+        width: 40px;
+        height: 40px;
+        color: #28a745;
+    }
+
+    .success-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin-bottom: 1rem;
+    }
+
+    .success-message {
+        color: var(--text-secondary);
+        font-size: 0.9375rem;
+        line-height: 1.6;
+        margin-bottom: 2rem;
+    }
+
+    .success-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .payment-detail {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.9375rem;
+    }
+
+    .payment-detail:last-child {
+        border-bottom: none;
+    }
+
+    .payment-detail-label {
+        color: var(--text-secondary);
+    }
+
+    .payment-detail-value {
+        font-weight: 500;
+        font-family: ui-monospace, monospace;
+    }
+
+    .success-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+</style>
+
+<div class="success-container">
+    <div class="success-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+    </div>
+
+    <h1 class="success-title">Payment successful</h1>
+    <p class="success-message">
+        Your payment has been processed. A confirmation email has been sent to your registered email address.
+    </p>
+
+    @if (TempData["MaskedCard"] != null || TempData["SuccessMessage"] != null)
+    {
+    <div class="success-card">
+        @if (TempData["MaskedCard"] != null)
+        {
+        <div class="payment-detail">
+            <span class="payment-detail-label">Card</span>
+            <span class="payment-detail-value">@TempData["MaskedCard"]</span>
+        </div>
+        }
+        @if (TempData["SuccessMessage"] != null)
+        {
+        <div class="payment-detail">
+            <span class="payment-detail-label">Status</span>
+            <span class="payment-detail-value" style="color: #28a745;">Completed</span>
+        </div>
+        }
+    </div>
+    }
+
+    <div class="success-actions">
+        <a asp-controller="Payment" asp-action="Index" class="btn btn-primary">
+            Make another payment
+        </a>
+        <a asp-controller="Home" asp-action="Index" class="btn btn-secondary">
+            Return home
+        </a>
+    </div>
+</div>

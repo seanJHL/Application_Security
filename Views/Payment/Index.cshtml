@@ -1,0 +1,338 @@
+@model SecureWebApp.Models.PaymentViewModel
+@{
+    ViewData["Title"] = "Payment";
+    var savedCards = ViewBag.SavedCards as List<SecureWebApp.Controllers.SavedCardViewModel> ?? new List<SecureWebApp.Controllers.SavedCardViewModel>();
+}
+
+<style>
+    .payment-layout {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 2rem;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    @@media (max-width: 768px) {
+        .payment-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .payment-header {
+        margin-bottom: 2rem;
+    }
+
+    .payment-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin-bottom: 0.5rem;
+    }
+
+    .payment-subtitle {
+        color: var(--text-secondary);
+        font-size: 0.9375rem;
+    }
+
+    .payment-form-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 2rem;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .input-hint {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.375rem;
+    }
+
+    .amount-input {
+        position: relative;
+    }
+
+    .amount-prefix {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        font-size: 0.9375rem;
+    }
+
+    .amount-input input {
+        padding-left: 2rem;
+    }
+
+    .sidebar-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .sidebar-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .sidebar-header h3 {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .saved-card-item {
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .saved-card-item:last-child {
+        border-bottom: none;
+    }
+
+    .card-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+    }
+
+    .card-brand {
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .card-number {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+        font-family: ui-monospace, monospace;
+    }
+
+    .card-expiry {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .btn-delete {
+        background: none;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .btn-delete:hover {
+        border-color: #ff3b30;
+        color: #ff3b30;
+        background: #fff5f5;
+    }
+
+    .security-info {
+        padding: 1.25rem 1.5rem;
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    .security-info strong {
+        display: block;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .security-features {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        margin-top: 1.5rem;
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+    }
+
+    .security-features strong {
+        color: var(--text-primary);
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+
+    .security-features ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .security-features li {
+        padding: 0.25rem 0;
+        padding-left: 1rem;
+        position: relative;
+    }
+
+    .security-features li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.65rem;
+        width: 4px;
+        height: 4px;
+        background: var(--text-muted);
+        border-radius: 50%;
+    }
+</style>
+
+<div class="payment-header">
+    <h1 class="payment-title">Payment</h1>
+    <p class="payment-subtitle">Enter your card details to make a secure payment</p>
+</div>
+
+<div class="payment-layout">
+    <div class="payment-main">
+        <div class="payment-form-card">
+            <form asp-action="ProcessPayment" asp-controller="Payment" method="post">
+                @Html.AntiForgeryToken()
+
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                <div class="mb-3">
+                    <label asp-for="CardNumber" class="form-label">Card number</label>
+                    <input asp-for="CardNumber" class="form-control"
+                           maxlength="19"
+                           pattern="[0-9\s\-]*"
+                           inputmode="numeric"
+                           autocomplete="cc-number"
+                           placeholder="1234 5678 9012 3456" />
+                    <span asp-validation-for="CardNumber" class="text-danger"></span>
+                    <p class="input-hint">Enter 13-19 digit card number</p>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="CardholderName" class="form-label">Cardholder name</label>
+                    <input asp-for="CardholderName" class="form-control"
+                           maxlength="100"
+                           autocomplete="cc-name"
+                           placeholder="Name on card" />
+                    <span asp-validation-for="CardholderName" class="text-danger"></span>
+                </div>
+
+                <div class="form-row mb-3">
+                    <div>
+                        <label asp-for="ExpiryMonth" class="form-label">Month</label>
+                        <select asp-for="ExpiryMonth" class="form-select" autocomplete="cc-exp-month">
+                            <option value="">MM</option>
+                            @for (int i = 1; i <= 12; i++)
+                            {
+                            <option value="@i">@i.ToString("D2")</option>
+                            }
+                        </select>
+                        <span asp-validation-for="ExpiryMonth" class="text-danger"></span>
+                    </div>
+                    <div>
+                        <label asp-for="ExpiryYear" class="form-label">Year</label>
+                        <select asp-for="ExpiryYear" class="form-select" autocomplete="cc-exp-year">
+                            <option value="">YYYY</option>
+                            @for (int i = DateTime.Now.Year; i <= DateTime.Now.Year + 15; i++)
+                            {
+                            <option value="@i">@i</option>
+                            }
+                        </select>
+                        <span asp-validation-for="ExpiryYear" class="text-danger"></span>
+                    </div>
+                    <div>
+                        <label asp-for="CVV" class="form-label">CVV</label>
+                        <input asp-for="CVV" type="password" class="form-control"
+                               maxlength="4"
+                               pattern="[0-9]*"
+                               inputmode="numeric"
+                               autocomplete="cc-csc"
+                               placeholder="123" />
+                        <span asp-validation-for="CVV" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Amount" class="form-label">Amount</label>
+                    <div class="amount-input">
+                        <span class="amount-prefix">$</span>
+                        <input asp-for="Amount" type="number" step="0.01" min="0.01" class="form-control" />
+                    </div>
+                    <span asp-validation-for="Amount" class="text-danger"></span>
+                </div>
+
+                <div class="mb-4 form-check">
+                    <input asp-for="SaveCard" class="form-check-input" />
+                    <label asp-for="SaveCard" class="form-check-label" style="font-size: 0.875rem;">
+                        Save card for future payments
+                    </label>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        Pay @Model.Amount.ToString("C")
+                    </button>
+                </div>
+            </form>
+
+            <div class="security-features">
+                <strong>Security features</strong>
+                <ul>
+                    <li>AES-256 encryption for stored cards</li>
+                    <li>Input validation prevents SQL injection</li>
+                    <li>TLS encryption for data transmission</li>
+                    <li>CVV is never stored (PCI DSS compliance)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="payment-sidebar">
+        @if (savedCards.Any())
+        {
+        <div class="sidebar-card">
+            <div class="sidebar-header">
+                <h3>Saved cards</h3>
+            </div>
+            @foreach (var card in savedCards)
+            {
+            <div class="saved-card-item">
+                <div class="card-info">
+                    <span class="card-brand">@card.CardBrand</span>
+                    <span class="card-number">**** @card.LastFourDigits</span>
+                    <span class="card-expiry">Expires @card.ExpiryMonth.ToString("D2")/@card.ExpiryYear</span>
+                </div>
+                <form asp-action="DeleteCard" asp-route-id="@card.Id" method="post" style="margin: 0;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn-delete"
+                            onclick="return confirm('Delete this card?')">
+                        Remove
+                    </button>
+                </form>
+            </div>
+            }
+        </div>
+        }
+
+        <div class="sidebar-card" style="margin-top: 1rem;">
+            <div class="security-info">
+                <strong>Your data is secure</strong>
+                All credit card information is encrypted using industry-standard AES-256 encryption before being stored. CVV codes are never saved.
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

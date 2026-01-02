@@ -1,0 +1,128 @@
+@{
+    ViewData["Title"] = "Account locked";
+}
+
+<style>
+    .lockout-container {
+        max-width: 440px;
+        margin: 3rem auto;
+        text-align: center;
+    }
+
+    .lockout-icon {
+        width: 64px;
+        height: 64px;
+        background: #fff3cd;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+    }
+
+    .lockout-icon svg {
+        width: 32px;
+        height: 32px;
+        color: #856404;
+    }
+
+    .lockout-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin-bottom: 1rem;
+    }
+
+    .lockout-message {
+        color: var(--text-secondary);
+        font-size: 0.9375rem;
+        line-height: 1.6;
+        margin-bottom: 2rem;
+    }
+
+    .lockout-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 2rem;
+        text-align: left;
+        margin-bottom: 1.5rem;
+    }
+
+    .lockout-card h3 {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    .lockout-options {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .lockout-options li {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        padding: 0.5rem 0;
+        padding-left: 1.25rem;
+        position: relative;
+    }
+
+    .lockout-options li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.85rem;
+        width: 5px;
+        height: 5px;
+        background: var(--text-muted);
+        border-radius: 50%;
+    }
+
+    .lockout-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .security-note {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+        margin-top: 2rem;
+    }
+</style>
+
+<div class="lockout-container">
+    <div class="lockout-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+    </div>
+
+    <h1 class="lockout-title">Account temporarily locked</h1>
+    <p class="lockout-message">
+        Your account has been temporarily locked due to multiple failed login attempts.
+        This is a security measure to protect your account from unauthorized access.
+    </p>
+
+    <div class="lockout-card">
+        <h3>What you can do</h3>
+        <ul class="lockout-options">
+            <li>Wait 15 minutes for the lockout period to expire</li>
+            <li>Reset your password if you've forgotten it</li>
+            <li>Contact support for immediate assistance</li>
+        </ul>
+    </div>
+
+    <div class="lockout-actions">
+        <a asp-action="Login" class="btn btn-primary">Try again</a>
+        <a href="#" class="btn btn-secondary">Reset password</a>
+    </div>
+
+    <p class="security-note">
+        Account lockout protects against brute force attacks by limiting login attempts.
+    </p>
+</div>

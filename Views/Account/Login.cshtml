@@ -1,0 +1,158 @@
+@model SecureWebApp.Models.LoginViewModel
+@{
+    ViewData["Title"] = "Sign in";
+}
+
+<style>
+    .auth-container {
+        max-width: 400px;
+        margin: 2rem auto;
+    }
+
+    .auth-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .auth-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin-bottom: 0.5rem;
+    }
+
+    .auth-subtitle {
+        color: var(--text-secondary);
+        font-size: 0.9375rem;
+    }
+
+    .auth-form {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 2rem;
+    }
+
+    .auth-footer {
+        text-align: center;
+        margin-top: 1.5rem;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    .auth-divider {
+        display: flex;
+        align-items: center;
+        margin: 1.5rem 0;
+        color: var(--text-muted);
+        font-size: 0.8125rem;
+    }
+
+    .auth-divider::before,
+    .auth-divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border-color);
+    }
+
+    .auth-divider::before {
+        margin-right: 1rem;
+    }
+
+    .auth-divider::after {
+        margin-left: 1rem;
+    }
+
+    .security-note {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-top: 1.5rem;
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+    }
+
+    .security-note strong {
+        color: var(--text-primary);
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+
+    .security-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .security-list li {
+        padding: 0.25rem 0;
+        padding-left: 1rem;
+        position: relative;
+    }
+
+    .security-list li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.65rem;
+        width: 4px;
+        height: 4px;
+        background: var(--text-muted);
+        border-radius: 50%;
+    }
+</style>
+
+<div class="auth-container">
+    <div class="auth-header">
+        <h1 class="auth-title">Welcome back</h1>
+        <p class="auth-subtitle">Sign in to your account to continue</p>
+    </div>
+
+    <div class="auth-form">
+        <form asp-action="Login" asp-controller="Account" method="post">
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label">Email address</label>
+                <input asp-for="Email" class="form-control" autocomplete="username" placeholder="you@example.com" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label">Password</label>
+                <input asp-for="Password" type="password" class="form-control" autocomplete="current-password" placeholder="Enter your password" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <div class="mb-4 form-check">
+                <input asp-for="RememberMe" class="form-check-input" />
+                <label asp-for="RememberMe" class="form-check-label" style="font-size: 0.875rem;">Remember me</label>
+            </div>
+
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-lg">Sign in</button>
+            </div>
+        </form>
+
+        <div class="auth-footer">
+            Don't have an account? <a asp-action="Register">Create one</a>
+        </div>
+    </div>
+
+    <div class="security-note">
+        <strong>Security features</strong>
+        <ul class="security-list">
+            <li>Account lockout after 5 failed attempts</li>
+            <li>CSRF token protection enabled</li>
+            <li>Secure cookie configuration</li>
+        </ul>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}
