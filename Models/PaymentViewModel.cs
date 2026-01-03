@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace SecureWebApp.Models;
 
@@ -10,16 +12,24 @@ namespace SecureWebApp.Models;
 /// </summary>
 public class PaymentViewModel : IValidatableObject
 {
+    // ============================================================
+    // STEP 4: WHITE LIST INPUT VALIDATION - Card Number
+    // Only allows digits, spaces, and dashes - blocks SQL injection chars like ' " ; --
+    // ============================================================
     [Required(ErrorMessage = "Card number is required")]
     [CreditCard(ErrorMessage = "Invalid credit card number")]
     [StringLength(19, MinimumLength = 13, ErrorMessage = "Card number must be 13-19 digits")]
-    [RegularExpression(@"^[0-9\s\-]+$", ErrorMessage = "Card number can only contain digits, spaces, and dashes")]
+    [RegularExpression(@"^[0-9\s\-]+$", ErrorMessage = "Card number can only contain digits, spaces, and dashes")] // Step 4: Whitelist - only 0-9, spaces, dashes allowed
     [Display(Name = "Card Number")]
     public string CardNumber { get; set; } = string.Empty;
 
+    // ============================================================
+    // STEP 4: WHITE LIST INPUT VALIDATION - Cardholder Name
+    // Only allows letters, spaces, hyphens, periods - blocks SQL injection chars
+    // ============================================================
     [Required(ErrorMessage = "Cardholder name is required")]
     [StringLength(100, MinimumLength = 2, ErrorMessage = "Name must be 2-100 characters")]
-    [RegularExpression(@"^[a-zA-Z\s\-\.]+$", ErrorMessage = "Name can only contain letters, spaces, hyphens, and periods")]
+    [RegularExpression(@"^[a-zA-Z\s\-\.]+$", ErrorMessage = "Name can only contain letters, spaces, hyphens, and periods")] // Step 4: Whitelist - blocks ' " ; -- and other SQL injection characters
     [Display(Name = "Name on Card")]
     public string CardholderName { get; set; } = string.Empty;
 
@@ -33,9 +43,13 @@ public class PaymentViewModel : IValidatableObject
     [Display(Name = "Expiry Year")]
     public int ExpiryYear { get; set; }
 
+    // ============================================================
+    // STEP 4: WHITE LIST INPUT VALIDATION - CVV
+    // Only allows 3-4 digits - no letters or special characters
+    // ============================================================
     [Required(ErrorMessage = "CVV is required")]
     [StringLength(4, MinimumLength = 3, ErrorMessage = "CVV must be 3-4 digits")]
-    [RegularExpression(@"^[0-9]+$", ErrorMessage = "CVV can only contain digits")]
+    [RegularExpression(@"^[0-9]+$", ErrorMessage = "CVV can only contain digits")] // Step 4: Whitelist - only digits 0-9 allowed
     [Display(Name = "CVV")]
     public string CVV { get; set; } = string.Empty;
 
@@ -63,5 +77,92 @@ public class PaymentViewModel : IValidatableObject
                 new[] { nameof(ExpiryMonth), nameof(ExpiryYear) }
             );
         }
+    }
+}
+
+// ============================================================
+// STEP 4: CUSTOM WHITE LIST VALIDATION ATTRIBUTES
+// These provide additional defense-in-depth beyond RegularExpression
+// ============================================================
+
+/// <summary>
+/// Step 4: WhiteListCardNumberAttribute - Only allows digits and spaces
+/// Explicitly rejects SQL injection characters
+/// </summary>
+public class WhiteListCardNumberAttribute : ValidationAttribute
+{
+    // Step 4: Whitelist pattern - only digits, spaces, dashes allowed
+    private static readonly Regex AllowedPattern = new Regex(@"^[0-9\s\-]+$", RegexOptions.Compiled);
+
+    protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
+    {
+        if (value is string cardNumber)
+        {
+            // Step 4: Reject if contains any non-whitelisted characters
+            if (!AllowedPattern.IsMatch(cardNumber))
+            {
+                return new ValidationResult("Card number contains invalid characters.");
+            }
+
+            var digitsOnly = new string(cardNumber.Where(char.IsDigit).ToArray());
+            if (digitsOnly.Length < 13 || digitsOnly.Length > 19)
+            {
+                return new ValidationResult("Card number must be 13-19 digits.");
+            }
+        }
+        return ValidationResult.Success;
+    }
+}
+
+/// <summary>
+/// Step 4: WhiteListNameAttribute - Only allows letters, spaces, hyphens, apostrophes
+/// Explicitly blocks SQL injection patterns
+/// </summary>
+public class WhiteListNameAttribute : ValidationAttribute
+{
+    // Step 4: Whitelist pattern - only letters, spaces, hyphens, apostrophes, periods
+    private static readonly Regex AllowedPattern = new Regex(@"^[a-zA-Z\s\-'\.]+$", RegexOptions.Compiled);
+
+    // Step 4: Explicitly block SQL injection patterns
+    private static readonly string[] BlockedPatterns = { "--", ";", "/*", "*/", "xp_", "UNION", "SELECT", "DROP", "INSERT", "DELETE", "UPDATE", "EXEC" };
+
+    protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
+    {
+        if (value is string name)
+        {
+            // Step 4: Check for SQL injection patterns first
+            foreach (var pattern in BlockedPatterns)
+            {
+                if (name.IndexOf(pattern, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return new ValidationResult("Name contains invalid characters.");
+                }
+            }
+
+            // Step 4: Then check against whitelist
+            if (!AllowedPattern.IsMatch(name))
+            {
+                return new ValidationResult("Name can only contain letters, spaces, and hyphens.");
+            }
+        }
+        return ValidationResult.Success;
+    }
+}
+
+/// <summary>
+/// Step 4: WhiteListCVVAttribute - Only allows 3-4 digits
+/// </summary>
+public class WhiteListCVVAttribute : ValidationAttribute
+{
+    // Step 4: Whitelist pattern - only 3-4 digits allowed
+    private static readonly Regex AllowedPattern = new Regex(@"^[0-9]{3,4}$", RegexOptions.Compiled);
+
+    protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
+    {
+        if (value is string cvv && !AllowedPattern.IsMatch(cvv))
+        {
+            return new ValidationResult("CVV must be 3-4 digits only.");
+        }
+        return ValidationResult.Success;
     }
 }
