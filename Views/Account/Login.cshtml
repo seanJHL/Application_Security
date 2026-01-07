@@ -442,33 +442,33 @@
                     <p><strong>SQL Server Stored Procedures:</strong></p>
                     <pre><code>-- sp_GetUserCreditCards: Safely retrieves user's saved cards
 CREATE PROCEDURE sp_GetUserCreditCards
-    @UserId NVARCHAR(450)
+    @@UserId NVARCHAR(450)
 AS
 BEGIN
     SET NOCOUNT ON;
     SELECT Id, CardBrand, LastFourDigits, ExpiryMonth, ExpiryYear
     FROM CreditCards
-    WHERE UserId = @UserId
+    WHERE UserId = @@UserId
     ORDER BY CreatedAt DESC;
 END
 GO
 
 -- sp_SaveCreditCard: Safely inserts new card data
 CREATE PROCEDURE sp_SaveCreditCard
-    @UserId NVARCHAR(450),
-    @EncryptedCardNumber VARBINARY(MAX),
-    @CardBrand NVARCHAR(50),
-    @LastFourDigits NVARCHAR(4),
-    @CardholderName NVARCHAR(100),
-    @ExpiryMonth INT,
-    @ExpiryYear INT
+    @@UserId NVARCHAR(450),
+    @@EncryptedCardNumber VARBINARY(MAX),
+    @@CardBrand NVARCHAR(50),
+    @@LastFourDigits NVARCHAR(4),
+    @@CardholderName NVARCHAR(100),
+    @@ExpiryMonth INT,
+    @@ExpiryYear INT
 AS
 BEGIN
     SET NOCOUNT ON;
     INSERT INTO CreditCards (UserId, EncryptedCardNumber, CardBrand,
         LastFourDigits, CardholderName, ExpiryMonth, ExpiryYear, CreatedAt)
-    VALUES (@UserId, @EncryptedCardNumber, @CardBrand,
-        @LastFourDigits, @CardholderName, @ExpiryMonth, @ExpiryYear, GETUTCDATE());
+    VALUES (@@UserId, @@EncryptedCardNumber, @@CardBrand,
+        @@LastFourDigits, @@CardholderName, @@ExpiryMonth, @@ExpiryYear, GETUTCDATE());
 
     SELECT SCOPE_IDENTITY() AS NewId;
 END</code></pre>
@@ -481,7 +481,7 @@ END</code></pre>
     using var command = new SqlCommand("sp_GetUserCreditCards", connection);
 
     command.CommandType = CommandType.StoredProcedure;
-    command.Parameters.Add("@UserId", SqlDbType.NVarChar, 450).Value = userId;
+    command.Parameters.Add("@@UserId", SqlDbType.NVarChar, 450).Value = userId;
 
     await connection.OpenAsync();
     using var reader = await command.ExecuteReaderAsync();
@@ -504,7 +504,7 @@ END</code></pre>
 public class WhiteListCardNumberAttribute : ValidationAttribute
 {
     private static readonly Regex AllowedPattern =
-        new Regex(@"^[0-9\s\-]+$", RegexOptions.Compiled);
+        new Regex(@@"^[0-9\s\-]+$", RegexOptions.Compiled);
 
     protected override ValidationResult IsValid(object value,
         ValidationContext context)
@@ -528,7 +528,7 @@ public class WhiteListCardNumberAttribute : ValidationAttribute
 public class WhiteListNameAttribute : ValidationAttribute
 {
     private static readonly Regex AllowedPattern =
-        new Regex(@"^[a-zA-Z\s\-'\.]+$", RegexOptions.Compiled);
+        new Regex(@@"^[a-zA-Z\s\-'\.]+$", RegexOptions.Compiled);
 
     // Explicitly block SQL injection patterns
     private static readonly string[] BlockedPatterns =
@@ -555,7 +555,7 @@ public class WhiteListNameAttribute : ValidationAttribute
 public class WhiteListCVVAttribute : ValidationAttribute
 {
     private static readonly Regex AllowedPattern =
-        new Regex(@"^[0-9]{3,4}$", RegexOptions.Compiled);
+        new Regex(@@"^[0-9]{3,4}$", RegexOptions.Compiled);
 
     protected override ValidationResult IsValid(object value,
         ValidationContext context)
