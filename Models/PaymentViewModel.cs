@@ -83,11 +83,12 @@ public class PaymentViewModel : IValidatableObject
 // ============================================================
 // STEP 4: CUSTOM WHITE LIST VALIDATION ATTRIBUTES
 // These provide additional defense-in-depth beyond RegularExpression
+// XSS PROTECTION LAYER 3: Input validation with whitelist patterns
 // ============================================================
 
 /// <summary>
 /// Step 4: WhiteListCardNumberAttribute - Only allows digits and spaces
-/// Explicitly rejects SQL injection characters
+/// Explicitly rejects SQL injection and XSS characters
 /// </summary>
 public class WhiteListCardNumberAttribute : ValidationAttribute
 {
@@ -116,7 +117,7 @@ public class WhiteListCardNumberAttribute : ValidationAttribute
 
 /// <summary>
 /// Step 4: WhiteListNameAttribute - Only allows letters, spaces, hyphens, apostrophes
-/// Explicitly blocks SQL injection patterns
+/// Explicitly blocks SQL injection AND XSS patterns for defense-in-depth
 /// </summary>
 public class WhiteListNameAttribute : ValidationAttribute
 {
@@ -124,14 +125,31 @@ public class WhiteListNameAttribute : ValidationAttribute
     private static readonly Regex AllowedPattern = new Regex(@"^[a-zA-Z\s\-'\.]+$", RegexOptions.Compiled);
 
     // Step 4: Explicitly block SQL injection patterns
-    private static readonly string[] BlockedPatterns = { "--", ";", "/*", "*/", "xp_", "UNION", "SELECT", "DROP", "INSERT", "DELETE", "UPDATE", "EXEC" };
+    private static readonly string[] SqlInjectionPatterns = { "--", ";", "/*", "*/", "xp_", "UNION", "SELECT", "DROP", "INSERT", "DELETE", "UPDATE", "EXEC" };
+
+    // XSS PROTECTION LAYER 3: Explicitly block XSS patterns
+    // These patterns are blocked as defense-in-depth (Razor encoding handles the primary defense)
+    private static readonly string[] XssPatterns = {
+        "<script", "</script", "javascript:", "onerror=", "onload=", "onclick=",
+        "onmouseover=", "onfocus=", "onblur=", "<iframe", "<object", "<embed",
+        "<svg", "expression(", "vbscript:", "<img", "&#", "\\u00", "%3c", "%3e"
+    };
 
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
         if (value is string name)
         {
             // Step 4: Check for SQL injection patterns first
-            foreach (var pattern in BlockedPatterns)
+            foreach (var pattern in SqlInjectionPatterns)
+            {
+                if (name.IndexOf(pattern, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return new ValidationResult("Name contains invalid characters.");
+                }
+            }
+
+            // XSS PROTECTION: Check for XSS patterns (defense-in-depth)
+            foreach (var pattern in XssPatterns)
             {
                 if (name.IndexOf(pattern, StringComparison.OrdinalIgnoreCase) >= 0)
                 {
@@ -162,6 +180,73 @@ public class WhiteListCVVAttribute : ValidationAttribute
         if (value is string cvv && !AllowedPattern.IsMatch(cvv))
         {
             return new ValidationResult("CVV must be 3-4 digits only.");
+        }
+        return ValidationResult.Success;
+    }
+}
+
+/// <summary>
+/// XSS PROTECTION LAYER 3: General-purpose XSS validation attribute
+/// Use this attribute on any user input field that may contain free-form text
+/// This provides defense-in-depth alongside Razor's automatic output encoding
+/// </summary>
+public class AntiXssAttribute : ValidationAttribute
+{
+    // XSS attack patterns to block - comprehensive list for defense-in-depth
+    private static readonly string[] XssPatterns = {
+        // Script injection patterns
+        "<script", "</script>", "javascript:", "vbscript:", "data:text/html",
+
+        // Event handler injection (common XSS vectors)
+        "onerror=", "onload=", "onclick=", "onmouseover=", "onmouseout=",
+        "onfocus=", "onblur=", "onsubmit=", "onreset=", "onselect=",
+        "onchange=", "oninput=", "onkeydown=", "onkeyup=", "onkeypress=",
+
+        // HTML injection that can contain scripts
+        "<iframe", "<frame", "<object", "<embed", "<applet", "<meta",
+        "<link", "<style", "<base", "<form", "<input", "<button",
+
+        // SVG-based XSS
+        "<svg", "<animate", "<set",
+
+        // Expression-based (legacy IE)
+        "expression(", "behavior:",
+
+        // Encoded payloads (URL/HTML encoding bypass attempts)
+        "&#", "\\u00", "%3c", "%3e", "%22", "%27", "%3d",
+
+        // Protocol handlers
+        "file:", "ftp:",
+
+        // Template injection
+        "{{", "}}", "${", "<%", "%>"
+    };
+
+    // Alternative regex pattern for detecting encoded XSS attempts
+    private static readonly Regex EncodedXssPattern = new Regex(
+        @"(&#[xX]?[0-9a-fA-F]+;?)|(%[0-9a-fA-F]{2})|(\\.u[0-9a-fA-F]{4})",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
+    {
+        if (value is string input && !string.IsNullOrEmpty(input))
+        {
+            // Check for known XSS patterns (case-insensitive)
+            foreach (var pattern in XssPatterns)
+            {
+                if (input.IndexOf(pattern, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return new ValidationResult(
+                        $"The {validationContext.DisplayName} field contains potentially unsafe content.");
+                }
+            }
+
+            // Check for encoded XSS attempts
+            if (EncodedXssPattern.IsMatch(input))
+            {
+                return new ValidationResult(
+                    $"The {validationContext.DisplayName} field contains encoded characters that are not allowed.");
+            }
         }
         return ValidationResult.Success;
     }

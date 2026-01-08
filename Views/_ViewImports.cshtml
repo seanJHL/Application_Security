@@ -1,3 +1,32 @@
 @using SecureWebApp
 @using SecureWebApp.Models
+@using SecureWebApp.Services
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@addTagHelper *, SecureWebApp
+
+@*
+============================================================
+XSS PROTECTION LAYER 1: Razor Automatic Output Encoding
+============================================================
+SECURITY GUIDELINES FOR ALL RAZOR VIEWS:
+
+1. ALWAYS use Razor's @ syntax for displaying data:
+   SAFE:   @Model.UserName
+   SAFE:   @ViewData["Message"]
+
+2. NEVER use Html.Raw() with untrusted user data:
+   UNSAFE: @Html.Raw(Model.UserInput)  <-- XSS VULNERABILITY!
+
+3. If you MUST render HTML, sanitize it first:
+   var safeHtml = _sanitizer.Sanitize(userInput);
+   @Html.Raw(safeHtml)
+
+4. Use tag helpers for form elements (they auto-encode):
+   <input asp-for="UserName" />
+
+5. For JavaScript, use Json.Serialize:
+   var data = @Html.Raw(Json.Serialize(Model));
+
+6. CDN scripts must use CSP nonce attribute
+============================================================
+*@
